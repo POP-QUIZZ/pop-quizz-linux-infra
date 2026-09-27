@@ -1,0 +1,8 @@
+---
+deploy_user: feno
+
+dockerhub_username: "claudine001"
+db_user: "pop_quizz_user"
+db_name: "pop_quizz"
+access_token_exp: "900d"
+cors_origins: "http://192.168.56.2"

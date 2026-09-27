@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/skeleton.sql:/docker-entrypoint-initdb.d/01-skeleton.sql:ro
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${DOCKERHUB_USERNAME}/pop-quizz-back:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      ACCESS_TOKEN_EXP: ${ACCESS_TOKEN_EXP}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_net
+      - frontend_net
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/pop-quizz-front:latest
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    depends_on:
+      - backend
+    networks:
+      - frontend_net
+
+volumes:
+  db_data:
+
+networks:
+  backend_net:
+  frontend_net:

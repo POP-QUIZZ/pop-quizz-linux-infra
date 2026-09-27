@@ -1,0 +1,63 @@
+---
+- name: Deploy Pop-Quizz
+  hosts: server
+  become: true
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: /opt/pop-quizz
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0755"
+
+    - name: Create environment file
+      copy:
+        dest: /opt/pop-quizz/.env
+        content: |
+          DB_USER="{{ db_user }}"
+          DB_PASSWORD="{{ db_password }}"
+          DB_NAME="{{ db_name }}"
+          DOCKERHUB_USERNAME="{{ dockerhub_username }}"
+          ACCESS_TOKEN_EXP="{{ access_token_exp }}"
+          JWT_SECRET="{{ jwt_secret }}"
+          CORS_ORIGINS="{{ cors_origins }}"
+
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"
+
+    - name: Copy docker-compose.yml to server
+      copy:
+        src: ../../docker/docker-compose.yml
+        dest: /opt/pop-quizz/docker-compose.yml
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+
+    - name: Create database directory
+      file:
+        path: /opt/pop-quizz/database
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0755"
+
+    - name: Copy database initialization script
+      copy:
+        src: ../../docker/database/skeleton.sql
+        dest: /opt/pop-quizz/database/skeleton.sql
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+
+    - name: Pull Docker images
+      command:
+        cmd: docker compose pull
+        chdir: /opt/pop-quizz
+
+    - name: Start Pop Quiz services
+      command:
+        cmd: docker compose up -d
+        chdir: /opt/pop-quizz
