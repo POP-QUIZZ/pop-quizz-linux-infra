@@ -22,7 +22,8 @@ jobs:
           VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
           echo "$VAULT_PASSWORD" > /tmp/vault_pass.txt
-          ansible-playbook -i Ansible/inventory/hosts.ini Ansible/playbooks/deploy.yml \
+          cd ansible
+          ansible-playbook -i inventory/hosts.ini playbooks/deploy.yml \
             --vault-password-file /tmp/vault_pass.txt \
             -e "frontend_image_tag=$FRONTEND_TAG" \
             -e "backend_image_tag=$BACKEND_TAG"
