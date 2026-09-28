@@ -3,6 +3,19 @@
   hosts: server
   become: true
 
+  # Pre-tasks to ensure that the deployment is safe and that the required variables are defined.
+  pre_tasks:
+    - name: Refuse to deploy without explicit immutable tags
+      ansible.builtin.assert:
+        that:
+          - frontend_image_tag is defined
+          - backend_image_tag is defined
+          - frontend_image_tag != 'latest'
+          - backend_image_tag != 'latest'
+        fail_msg: >-
+          Provide frontend_image_tag and backend_image_tag
+          (a commit SHA, never 'latest').
+
   tasks:
     - name: Create application directory
       file:
@@ -12,18 +25,10 @@
         group: "{{ deploy_user }}"
         mode: "0755"
 
-    - name: Create environment file
-      copy:
+    - name: Create environment file from template
+      template:
+        src: ../templates/mini-n8n.env.j2
         dest: /opt/pop-quizz/.env
-        content: |
-          DB_USER="{{ db_user }}"
-          DB_PASSWORD="{{ db_password }}"
-          DB_NAME="{{ db_name }}"
-          DOCKERHUB_USERNAME="{{ dockerhub_username }}"
-          ACCESS_TOKEN_EXP="{{ access_token_exp }}"
-          JWT_SECRET="{{ jwt_secret }}"
-          CORS_ORIGINS="{{ cors_origins }}"
-
         owner: "{{ deploy_user }}"
         group: "{{ deploy_user }}"
         mode: "0600"

@@ -1,0 +1,29 @@
+name: Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_tag:
+        description: "Frontend image tag (short SHA)"
+        required: true
+      backend_tag:
+        description: "Backend image tag (short SHA)"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64, deploy-infra]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run playbook
+        env:
+          FRONTEND_TAG: ${{ inputs.frontend_tag }}
+          BACKEND_TAG: ${{ inputs.backend_tag }}
+          VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "$VAULT_PASSWORD" > /tmp/vault_pass.txt
+          ansible-playbook -i Ansible/inventory/hosts.ini Ansible/playbooks/deploy.yml \
+            --vault-password-file /tmp/vault_pass.txt \
+            -e "frontend_image_tag=$FRONTEND_TAG" \
+            -e "backend_image_tag=$BACKEND_TAG"
+          rm /tmp/vault_pass.txt
